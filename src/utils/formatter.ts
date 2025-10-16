@@ -1,0 +1,1 @@
+export const binaryToJSONParser = (data: string) => JSON.parse(data);
