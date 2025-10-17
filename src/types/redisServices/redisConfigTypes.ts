@@ -6,3 +6,4 @@ export interface IRedisConfig {
     maxRetriesPerRequest?: number;
     reconnectOnError?: (err: Error) => boolean;
 }
+
