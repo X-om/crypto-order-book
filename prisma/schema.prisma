@@ -7,6 +7,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum OTP_TYPE {
+  LOGIN
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+}
+
+enum OTP_ACTION {
+    CREATE
+    VERIFY
+    EXPIRE
+}
 
 model User { 
   id          String @id @default(cuid())
@@ -14,12 +25,29 @@ model User {
   firstName   String 
   lastName    String
   
-  otpRecord Otp?
+  otpRecord Otp[]
+
+  @@index([email])
 }
 
 model Otp {
   id String @id @default(cuid())
-  userId String @unique
-  otp String 
+
+  userId String 
   user User @relation(fields:[userId], references: [id], onDelete: Cascade)
+
+  email String
+  action OTP_ACTION
+  type OTP_TYPE
+  success Boolean @default(false)
+
+  ip_address String?
+
+  createdAt DateTime @default(now())
+  expiresAt DateTime 
+
+  attempts Int @default(0)
+
+  @@index([userId])
+  @@index([email])
 }

@@ -1,17 +1,17 @@
 import { config } from 'dotenv';
 import { z } from 'zod';
 
-// Load environment variables from .env file
 config();
 
-// Define environment variable schema
 const envSchema = z.object({
     PORT: z.string().transform(Number),
     JWT_SECRET: z.string().min(1),
-    BINANCE_CRYPTO_ORDER_BOOK_API_URL: z.string().url()
+    BINANCE_CRYPTO_ORDER_BOOK_API_URL: z.string().url(),
+    REDIS_PORT: z.string().transform(Number),
+    REDIS_DATA_CLIENT: z.string().transform(Number),
+    REDIS_MAIL_CLIENT: z.string().transform(Number)
 });
 
-// Validate and transform environment variables
 const env = envSchema.safeParse(process.env);
 
 if (!env.success) {
@@ -19,5 +19,4 @@ if (!env.success) {
     throw new Error('Invalid environment variables');
 }
 
-// Export validated environment variables
-export const { PORT, JWT_SECRET, BINANCE_CRYPTO_ORDER_BOOK_API_URL } = env.data;
+export const { PORT, JWT_SECRET, BINANCE_CRYPTO_ORDER_BOOK_API_URL, REDIS_PORT, REDIS_DATA_CLIENT, REDIS_MAIL_CLIENT } = env.data;

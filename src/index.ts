@@ -22,9 +22,13 @@ const userManager = UserSubscriptionManager.getInstance(binanceWs);
 const server = createServer(app);
 const wss = new WebSocketServer({ server: server, path: '/ws' });
 
+
+// * Express Routes * //
 app.get('/health', (_, res) => res.send('server is healthy'));
 app.use('/api', routes);
 
+
+// * WebSocket Connection Handling * //
 wss.on('connection', async (ws: WebSocket) => {
     console.info('New client connected');
 
