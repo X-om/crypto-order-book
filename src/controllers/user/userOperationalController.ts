@@ -1,7 +1,7 @@
+import redisDataClient from '../../connection/redisDataClient';
 import { prisma } from '../../connection/dbClient';
 import { ICustomRequest, IUnifiedResponse } from '../../types/customHttpTypes';
 import { GenerateOtpSchemaType, UserSignUpType } from '../../middlewares/validations/userValidation';
-import redisClient from '../../connection/redisDataClient';
 import { getRedisOTPKey, REDIS_OTP_EXPIRY_SECONDS } from '../../constants/redisConstants';
 import { mailManager } from '../../services/mailManager';
 import { LOG_IN_OTP_MAIL_SUBJECT } from '../../constants/mailConstants';
@@ -23,16 +23,15 @@ const userSignUpController = async (req: ICustomRequest<UserSignUpType>, res: IU
 
 const generateLogInOtpController = async (req: ICustomRequest<GenerateOtpSchemaType>, res: IUnifiedResponse): Promise<void> => {
     try {
-        const { userId, body: { email } } = req;
-        if (userId === undefined) return void res.status(403).json({ success: false, message: "Unauthorized user" });
+        const { body: { email } } = req;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return void res.status(404).json({ success: false, message: "User Not Found" });
-
         const otp = String(Math.floor(Math.random() * 1e6)).padStart(6, '0');
+
         await Promise.all([
-            prisma.otp.create({ data: { userId, email, action: 'CREATE', type: 'LOGIN', ip_address: req.ip, expiresAt: new Date(Date.now() + REDIS_OTP_EXPIRY_SECONDS * 1000) } }),
-            redisClient.set(getRedisOTPKey(email), otp, 'EX', REDIS_OTP_EXPIRY_SECONDS),
+            prisma.otp.create({ data: { userId: user.id, email, action: 'CREATE', type: 'LOGIN', ip_address: req.remoteIpAddress, expiresAt: new Date(Date.now() + REDIS_OTP_EXPIRY_SECONDS * 1000) } }),
+            redisDataClient.set(getRedisOTPKey(email), otp, 'EX', REDIS_OTP_EXPIRY_SECONDS),
             mailManager.sendLogInOtpMail({ to: email, subject: LOG_IN_OTP_MAIL_SUBJECT, firstName: user.firstName, otp })
         ]);
 

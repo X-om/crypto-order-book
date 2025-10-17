@@ -1,12 +1,13 @@
-import { Request, Response } from "express"
+import { Request, Response } from "express";
 
 export interface ICustomRequest<TBody = undefined, TParams = undefined, TQuey = undefined> extends Request<TParams, undefined, TBody, TQuey> {
     userId?: string;
+    remoteIpAddress?: string;
 }
 
 interface ICustomSuccessResponse {
     success: true;
-    message?: string
+    message?: string;
     data?: Record<string, unknown>;
 }
 

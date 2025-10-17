@@ -4,6 +4,9 @@ import { REDIS_MAIL_QUEUE } from '../constants/redisConstants';
 import { getLogInOtpMailTemplate } from '../templates/logInOtpMailTemplate';
 import redisMailClient from '../connection/redisMailClient';
 import { LOG_IN_OTP_MAIL_KEY } from '../constants/mailConstants';
+import { ISendOtpMailProps } from '../types/mailTypes/mailProps';
+import { mailQueueLogger } from '../logs/redis/mailQueueLogger';
+
 
 class MailManager {
     private static instance: MailManager;
@@ -20,9 +23,16 @@ class MailManager {
         return MailManager.instance;
     }
 
+    public async logMailStatus() {
+        await mailQueueLogger(this.queue);
+    }
+
     public async sendLogInOtpMail({ to, subject, firstName, otp }: ISendOtpMailProps): Promise<void> {
         const mailTemplate = getLogInOtpMailTemplate(firstName, otp);
-        await this.queue.add(LOG_IN_OTP_MAIL_KEY, { to, subject, mailTemplate });
+        const job = await this.queue.add(LOG_IN_OTP_MAIL_KEY, { to, subject, mailTemplate },
+            { removeOnComplete: true, removeOnFail: 50, attempts: 3, backoff: { type: 'exponential', delay: 5000 } });
+
+        console.info(`Enqueued LogIn OTP mail job with id ${job.id} for recipient ${to}.`);
     }
 }
 

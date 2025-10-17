@@ -6,7 +6,7 @@ const handleUserSignUpInputValidation = (req: ICustomRequest<UserSignUpType>, re
     try {
         const response = userSignUpSchema.safeParse(req.body);
         if (!response.success)
-            return void res.status(422).json({ success: false, message: response.error.issues.map(err => err.message).join(',') })
+            return void res.status(422).json({ success: false, message: response.error.issues.map(err => `path: ${err.path.join('.')} | message: ${err.message}`).join(',') });
         return next();
     } catch (err) {
         console.error(err);
@@ -18,12 +18,12 @@ const handleGenerateOtpInputValidation = (req: ICustomRequest<GenerateOtpSchemaT
     try {
         const response = generateOtpSchema.safeParse(req.body);
         if (!response.success)
-            return void res.status(422).json({ success: false, message: response.error.issues.map(err => err.message).join(',') })
-        return next()
+            return void res.status(422).json({ success: false, message: response.error.issues.map(err => err.message).join(',') });
+        return next();
     } catch (err) {
         console.error(err);
         return void res.status(500).json({ success: false, error: "Internal server error" });
     }
-}
+};
 
 export { handleUserSignUpInputValidation, handleGenerateOtpInputValidation }; 

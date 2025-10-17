@@ -9,9 +9,12 @@
   "scripts": {
     "build": "tsc -b",
     "start": "node dist/index.js",
+    "dev": "nodemon src/index.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint . --ext .ts,.js",
-    "lint:fix": "eslint . --ext .ts,.js --fix"
+    "lint:fix": "eslint . --ext .ts,.js --fix",
+    "monitor:mail-queue": "ts-node src/scripts/monitorMailQueue.ts",
+    "monitor:otp-logs": "ts-node src/scripts/monitorOtpLogs.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",
@@ -38,6 +41,9 @@
     "@typescript-eslint/eslint-plugin": "^8.46.1",
     "@typescript-eslint/parser": "^8.46.1",
     "eslint": "^9.37.0",
-    "prisma": "^6.17.1"
+    "nodemon": "^3.1.10",
+    "prisma": "^6.17.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   }
 }
