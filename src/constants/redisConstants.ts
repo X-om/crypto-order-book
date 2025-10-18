@@ -20,7 +20,7 @@ export const REDIS_MAIL_CONFIG: IRedisConfig = {
 
 // * REDIS KEYS 
 export const getRedisOTPKey = (email: string) => `otp:${email}`;
-export const REDIS_OTP_ATTEMPT_PREFIX = (email: string) => `otp_attempts:${email}`;
+export const getRedisOTPAttemptsKey = (email: string) => `otp_attempts:${email}`;
 
 
 // * REDIS EXPIRY TIMES IN SECONDS

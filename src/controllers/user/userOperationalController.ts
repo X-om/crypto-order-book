@@ -1,10 +1,12 @@
 import redisDataClient from '../../connection/redisDataClient';
 import { prisma } from '../../connection/dbClient';
 import { ICustomRequest, IUnifiedResponse } from '../../types/customHttpTypes';
-import { GenerateOtpSchemaType, UserSignUpType } from '../../middlewares/validations/userValidation';
-import { getRedisOTPKey, REDIS_OTP_EXPIRY_SECONDS } from '../../constants/redisConstants';
+import { GenerateOtpSchemaType, UserSignUpType, VerifyOtpSchemaType } from '../../types/zod/userInputValidationSchemas';
+import { getRedisOTPAttemptsKey, getRedisOTPKey, REDIS_OTP_EXPIRY_SECONDS } from '../../constants/redisConstants';
 import { mailManager } from '../../services/mailManager';
 import { LOG_IN_OTP_MAIL_SUBJECT } from '../../constants/mailConstants';
+import { generateToken } from '../../utils/authHelpers';
+import { HOUR_IN_MILLISECONDS } from '../../constants/timeConstants';
 
 const userSignUpController = async (req: ICustomRequest<UserSignUpType>, res: IUnifiedResponse): Promise<void> => {
     try {
@@ -42,5 +44,33 @@ const generateLogInOtpController = async (req: ICustomRequest<GenerateOtpSchemaT
     }
 };
 
+const verifyLogInOtpController = async (req: ICustomRequest<VerifyOtpSchemaType>, res: IUnifiedResponse): Promise<void> => {
+    try {
+        const { body: { email, otp } } = req;
+        const redisPipeline = redisDataClient.multi();
 
-export { userSignUpController, generateLogInOtpController };    
+        redisPipeline.get(getRedisOTPKey(email));
+        redisPipeline.get(getRedisOTPAttemptsKey(email));
+        const [storedOtp, otpAttemptsStr] = await redisPipeline.exec().then(results => results ? results.map(result => result[1] as string) : [null, null]);
+        const otpAttempts = otpAttemptsStr ? parseInt(otpAttemptsStr, 10) : 0;
+
+        if (!storedOtp) return void res.status(400).json({ success: false, message: "OTP has expired or does not exist. Please request a new OTP." });
+        if (otpAttempts >= 3) return void res.status(429).json({ success: false, message: "Too many incorrect OTP attempts. Please request a new OTP." });
+        if (storedOtp !== otp) {
+            await redisDataClient.incr(getRedisOTPAttemptsKey(email));
+            return void res.status(401).json({ success: false, message: `Invalid OTP, attempts: ${otpAttempts + 1}` });
+        }
+        await Promise.all([redisDataClient.del(getRedisOTPKey(email)), redisDataClient.del(getRedisOTPAttemptsKey(email))]);
+        const token = await generateToken(email);
+        res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: HOUR_IN_MILLISECONDS });
+
+        return void res.status(200).json({ success: true });
+    } catch (err) {
+        console.error(err);
+        return void res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};
+
+
+
+export { userSignUpController, generateLogInOtpController, verifyLogInOtpController };

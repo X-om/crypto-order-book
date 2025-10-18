@@ -10,10 +10,13 @@ import { createServer } from 'http';
 import { PORT } from './env';
 import { binaryToJSONParser } from './utils/formatter';
 import { extractIpMiddleware } from './middlewares/extractIpMiddleware';
+import { apiLimiter } from './utils/limiters';
 
 const app = express();
 
 app.set('trust proxy', true);
+
+app.use(apiLimiter);
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ credentials: true }));

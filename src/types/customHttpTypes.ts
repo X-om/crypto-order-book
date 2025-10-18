@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 
-export interface ICustomRequest<TBody = undefined, TParams = undefined, TQuey = undefined> extends Request<TParams, undefined, TBody, TQuey> {
+export interface ICustomRequest<TBody = any, TParams = any, TQuery = any> extends Request<TParams, any, TBody, TQuery> {
     userId?: string;
     remoteIpAddress?: string;
 }
@@ -16,5 +16,12 @@ interface ICustomErrorResponse {
     error?: string;
     message?: string;
 }
+
 type ICustomResponse = ICustomErrorResponse | ICustomSuccessResponse;
 export type IUnifiedResponse = Response<ICustomResponse>;
+
+
+export interface IJwtPayload {
+    userId: string;
+    email: string;
+}
