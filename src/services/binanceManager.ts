@@ -1,57 +1,62 @@
-import { BINANCE_CRYPTO_ORDER_BOOK_API_URL } from './../env';
 import WebSocket from 'ws';
 import EventEmitter from 'events';
 import { binaryToJSONParser } from '../utils/formatter';
-import { BinanceCombinedStreamMessage, BinanceDepthData, BinanceTradeData } from '../types/BinanceWsManager/messageTypes';
+import { BinanceDepthUpdate, BinanceTradeData } from '../types/BinanceWsManager/messageTypes';
+
+type BinanceMessage = BinanceDepthUpdate | BinanceTradeData;
 
 class BinanceWsManager extends EventEmitter {
     private static instance: BinanceWsManager;
-    private ws: WebSocket | null = null;
-    private subscribedSymbols: Set<string> = new Set();
-
-    private constructor() {
-        super();
-    }
+    private symbolSockets = new Map<string, WebSocket>();
+    private constructor() { super(); }
 
     public static getInstance() {
         if (!BinanceWsManager.instance) BinanceWsManager.instance = new BinanceWsManager();
         return BinanceWsManager.instance;
     }
-    public connect() {
-        if (this.ws) return; // Don't create a new connection if one exists
 
-        this.ws = new WebSocket(`${BINANCE_CRYPTO_ORDER_BOOK_API_URL}?streams=`);
-        this.ws.on('open', () => console.info(`Connected to Binance WS`));
-        this.ws.on('message', (msg) => this.handleMessage(msg));
-        this.ws.on('error', (error) => console.error('WebSocket error:', error));
-        this.ws.on('close', () => console.info('Disconnected from Binance WS'));
-    }
-
-    private handleMessage(msg: WebSocket.Data) {
-        const data = binaryToJSONParser(String(msg)) as BinanceCombinedStreamMessage<BinanceTradeData | BinanceDepthData>;
-        const symbol = data.stream?.split('@')[0].toUpperCase();
-
-        this.emit(symbol, data.data);
-    }
+    public toBinanceSymbol(symbol: string): string { return symbol.replace('/', '').toLowerCase(); }
 
     public subscribe(symbol: string) {
-        if (this.subscribedSymbols.has(symbol)) return;
-        this.subscribedSymbols.add(symbol);
-        this.updateBinanceStreams();
+        const binanceSymbol = this.toBinanceSymbol(symbol);
+        if (this.symbolSockets.has(binanceSymbol)) return;
+
+        const wsUrl = `wss://stream.binance.com:9443/ws/${binanceSymbol}@depth`;
+        const ws = new WebSocket(wsUrl);
+
+        ws.on('open', () => console.info(`[Binance WS] Subscribed to ${binanceSymbol}`));
+        ws.on('message', (msg) => this.handleMessage(binanceSymbol, msg));
+        ws.on('error', (err) => console.error(`[Binance WS] Error for ${binanceSymbol}:`, err));
+        ws.on('close', (code, reason) => {
+            console.info(`[Binance WS] Closed for ${binanceSymbol}. Code: ${code}, Reason: ${reason}`);
+            this.symbolSockets.delete(binanceSymbol);
+        });
+
+        this.symbolSockets.set(binanceSymbol, ws);
     }
 
     public unsubscribe(symbol: string) {
-        this.subscribedSymbols.delete(symbol);
-        this.updateBinanceStreams();
+        const binanceSymbol = this.toBinanceSymbol(symbol);
+        const ws = this.symbolSockets.get(binanceSymbol);
+        if (!ws) return;
+
+        console.info(`[Binance WS] Unsubscribing from ${binanceSymbol}`);
+        ws.close();
+        this.symbolSockets.delete(binanceSymbol);
     }
 
-    private updateBinanceStreams() {
-        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    private handleMessage(symbol: string, msg: WebSocket.Data) {
+        try {
+            const parsed = binaryToJSONParser(String(msg)) as BinanceMessage;
+            this.emit(symbol, parsed);
+        } catch (err) {
+            console.error(`[Binance WS] Failed to parse message for ${symbol}:`, err);
+        }
+    }
 
-        const streams = Array.from(this.subscribedSymbols).map(s => `${s.toLowerCase()}@depth`).join('/');
-        this.ws.close();
-        this.ws = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
-        this.ws.on('message', (msg) => this.handleMessage(msg));
+    public activeConnections(): void {
+        const data = Array.from(this.symbolSockets.keys()).map((symbol) => ({ symbol, connectionStatus: 'connected' }));
+        console.table(data);
     }
 }
 

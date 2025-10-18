@@ -5,10 +5,10 @@ export interface ICustomRequest<TBody = any, TParams = any, TQuery = any> extend
     remoteIpAddress?: string;
 }
 
-interface ICustomSuccessResponse {
+interface ICustomSuccessResponse<T = undefined> {
     success: true;
     message?: string;
-    data?: Record<string, unknown>;
+    data?: Record<string, unknown> | T;
 }
 
 interface ICustomErrorResponse {
@@ -17,8 +17,8 @@ interface ICustomErrorResponse {
     message?: string;
 }
 
-type ICustomResponse = ICustomErrorResponse | ICustomSuccessResponse;
-export type IUnifiedResponse = Response<ICustomResponse>;
+type ICustomResponse<T = undefined> = ICustomErrorResponse | ICustomSuccessResponse<T>;
+export type IUnifiedResponse<T = undefined> = Response<ICustomResponse<T>>;
 
 
 export interface IJwtPayload {

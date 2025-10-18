@@ -14,7 +14,9 @@
     "lint": "eslint . --ext .ts,.js",
     "lint:fix": "eslint . --ext .ts,.js --fix",
     "monitor:mail-queue": "ts-node src/scripts/monitorMailQueue.ts",
-    "monitor:otp-logs": "ts-node src/scripts/monitorOtpLogs.ts"
+    "monitor:otp-logs": "ts-node src/scripts/monitorOtpLogs.ts",
+    "monitor:active-connections": "ts-node src/monitoring/monitorActiveConnections.ts"
+    
   },
   "dependencies": {
     "@prisma/client": "^6.17.1",

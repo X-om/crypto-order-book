@@ -60,7 +60,9 @@ const verifyLogInOtpController = async (req: ICustomRequest<VerifyOtpSchemaType>
             await redisDataClient.incr(getRedisOTPAttemptsKey(email));
             return void res.status(401).json({ success: false, message: `Invalid OTP, attempts: ${otpAttempts + 1}` });
         }
-        await Promise.all([redisDataClient.del(getRedisOTPKey(email)), redisDataClient.del(getRedisOTPAttemptsKey(email))]);
+        await Promise.all([
+            redisDataClient.del(getRedisOTPKey(email)),
+            redisDataClient.del(getRedisOTPAttemptsKey(email))]);
         const token = await generateToken(email);
         res.cookie('token', token, { httpOnly: true, secure: true, sameSite: 'lax', maxAge: HOUR_IN_MILLISECONDS });
 

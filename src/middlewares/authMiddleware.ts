@@ -16,6 +16,3 @@ export const verifyAuthMiddleware = (req: ICustomRequest, res: IUnifiedResponse,
         return void res.status(403).json({ success: false, error: "Invalid Token !" });
     }
 };
-
-
-

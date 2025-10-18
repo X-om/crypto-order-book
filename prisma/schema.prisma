@@ -39,7 +39,6 @@ model Otp {
   email String
   action OTP_ACTION
   type OTP_TYPE
-  success Boolean @default(false)
 
   ip_address String?
 
